@@ -1,0 +1,51 @@
+Part 3 experiments and visualization
+
+Finally, we test out model on the iris dataset
+
+from sklearn import datasets
+dataset = datasets.load_iris()
+x, y = dataset['data'][:,:], dataset['target']
+(num_instances, num_features), num_classes = x.shape, np.max(y)+1
+inds = np.random.permutation(num_instances)
+#train-test split)
+x_train, y_train = x[inds[:100]], y[inds[:100]]
+x_test, y_test = x[inds[100:]], y[inds[100:]]
+
+rf = RandomForest()
+model = rf.fit(x_train,y_train)
+results = rf.predict(x_test)
+
+#define a function to get the accuracy scores
+def get_accuracy(results,answer):
+    #results is a list of votes eg. [[8,0,0],[2,4,6]] answer is array of labels [1,0,0,1,2]
+    answer = y_test
+    right = 0
+    wrong = 0
+    record = np.zeros(len(results))
+    y_pred = np.zeros(len(results))
+    for i in range(len(results)):
+        #the predicted label is the one with the highest vote
+        if np.argmax(results[i][0]) == y_test[i]:
+            right = right + 1
+            record[i] = 1
+            y_pred[i] = np.argmax(results[i][0])
+        else:
+            wrong = wrong + 1
+        
+    #print(right/(right+wrong))
+    #print("y_pred:",y_pred)
+    accuracy = right/(right+wrong)
+    return accuracy, record, y_pred
+    
+#Get the percentage of correct guesses in the testing set
+print("The percentage for correct predictions is: ", round(get_accuracy(results,y_test)[0]*100),"%")
+
+#visualization
+y_pred = get_accuracy(results,y_test)[2]
+correct = np.array(get_accuracy(results,y_test)[1],dtype=bool)
+incorrect = np.logical_not(correct)
+plt.scatter(x_train[:,0], x_train[:,1], c=y_train, marker='o', alpha=.2, label='train')
+plt.scatter(x_test[correct,0], x_test[correct,1], marker='.', c=y_pred[correct], label='correct')
+plt.scatter(x_test[incorrect,0], x_test[incorrect,1], marker='x', c=y_test[incorrect], label='misclassified')
+plt.legend()
+plt.show()
