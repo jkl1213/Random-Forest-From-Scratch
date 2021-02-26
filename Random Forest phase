@@ -1,0 +1,156 @@
+Next, we add the extra functionalities that random forest requires.
+
+We write a function to get bootstrapped data given randomly generated index and m random variables
+We write a random forest class. Its fit method generates all the indices and then calls the create_tree function one at a time to create a single decision tree. The process is repeated until we have enough trees. All the trees are stored in a list object.
+The prediction is made by fitting testing data X to all the trees that we created. The trees will 'vote' for their predicted labels. We choose the label that most trees voted for.
+We design an accuracy function that can count how many testing data we predicted correctly to get a percentage for correct predictions.
+
+#Define a function to get a bootstrapped sample given a bootstrapped index and a variable array
+def get_bts(x,y,idx,f_idx):
+        
+    #get a bootstrap sample index given data
+    #data = np.array([[1,2,1],[3,4,3],[5,6,5],[9,0,7]])
+    #y = np.array([[1],[0],[0],[2]])
+    data = x
+    y = y
+    m = len(y)
+    subdata = data[idx[0],f_idx].reshape(1,m)
+    suby = y[idx[0]].reshape(1,1)
+
+    for i in idx[1:]:
+        newdata = data[i,f_idx].reshape(1,m)
+        newy = y[i].reshape(1,1)
+        suby = np.concatenate((suby, newy))
+        subdata = np.concatenate((subdata, newdata))
+
+    #get the bootstrapped data with m variables in a dataframe
+    subdata_df = pd.DataFrame(subdata, columns=f_idx, index = idx)
+
+    #subdata array for the fit function
+    subdata_array_x = subdata
+    subdata_array_x
+    #subdata label array for the fit function
+    subdata_array_y = suby
+    #print("subdata_array_x:",subdata_array_x)
+    #print("subdata_array_y:",subdata_array_y)
+    return subdata_array_x,subdata_array_y
+#Define a random forest 
+class RandomForest():
+    def __init__(self, depth=10, min_leaf=5, n_trees = 8, n_features='log2', sample_sz = 20, cost_fn =cost_misclassification):
+        np.random.seed(12)
+        self.depth, self.min_leaf = depth, min_leaf 
+        self.n_trees = n_trees 
+        self.sample_sz, self.n_features =  sample_sz, n_features
+        self.cost_fn = cost_fn
+        self.forest = []
+        self.total_idx = None
+        self.total_f_idx = None
+        self.m = None
+    def get_bts(self,x,y,idx,f_idx):
+        
+        #get a bootstrap sample index given data
+        #data = np.array([[1,2,1],[3,4,3],[5,6,5],[9,0,7]])
+        #y = np.array([[1],[0],[0],[2]])
+        data = x
+        y = y
+        
+        subdata = data[idx[0],f_idx].reshape(1,self.m)
+        suby = y[idx[0]].reshape(1,1)
+
+        for i in idx[1:]:
+            newdata = data[i,f_idx].reshape(1,self.m)
+            newy = y[i].reshape(1,1)
+            suby = np.concatenate((suby, newy))
+            subdata = np.concatenate((subdata, newdata))
+
+        #get the bootstrapped data with m variables in a dataframe
+        subdata_df = pd.DataFrame(subdata, columns=f_idx, index = idx)
+
+        #subdata array for the fit function
+        subdata_array_x = subdata
+        subdata_array_x
+        #subdata label array for the fit function
+        subdata_array_y = suby
+        #print("subdata_array_x:",subdata_array_x)
+        #print("subdata_array_y:",subdata_array_y)
+        
+        return subdata_array_x,subdata_array_y
+
+    def fit(self, x, y):
+        #---------- fit training data with the help of function __create_tree__ -----# 
+        #step 1: generate 8 bootstraps by sampling with replacement original data index
+        total_idx = []
+        total_f_idx = []
+        self.x = x
+        self.y = y
+        #for each bt, we fit a decision tree to the subdata
+        for i in range(self.n_trees):
+            
+            #generate bts
+            idx = np.random.choice(np.arange(len(x)),self.sample_sz,replace=True)
+            total_features = x.shape[1]
+            if self.n_features == 'log2':
+                self.m = round(np.log(total_features)/np.log(2))
+            elif self.n_features == 'sqrt':
+                self.m = round(np.sqrt(total_features))
+            
+            f_idx = np.random.choice(np.arange(x.shape[1]),round(self.m),replace=False)
+            total_idx.append(idx)
+            total_f_idx.append(f_idx)
+            
+            #fit a decision tree given generated index and m variables to bts
+            #print("total_idx[i]",total_idx[i])
+            #print("total_f_idx[i]",total_f_idx[i])
+            tree = self.__create_tree__(total_idx[i],total_f_idx[i])
+            self.forest.append(tree)
+            
+            self.total_idx = total_idx
+            self.total_f_idx = total_f_idx
+        
+        # --- implete step 1 -------#
+        pass
+    
+    def __create_tree__(self,idx,f_idx):
+        #---------- create and return one decision tree ---------------------#
+        #---  implete (a) and (b) of step 1 in random forest the algorithm in this python method ---- # 
+        #(a)
+        subx, subyy = self.get_bts(self.x,self.y,idx,f_idx)
+        suby = subyy.reshape(-1,)
+        #print("subx",subx)
+        #print("suby",suby)
+        #Fitting data to decision tree with added idx and f_idx argument
+        model = DecisionTree(idx,f_idx,max_depth=20)
+        decision_tree = model.fit(subx,suby)
+        return decision_tree
+        #t = decision_tree.fit(subx, suby)
+        
+        
+        # self.trees = [...]
+        
+        # return DecisionTree(...)
+         
+        
+    def predict(self, x):
+        #---------- return the predicted probability for test data ----------#
+        
+        votes = []
+        for j in range(x.shape[0]):
+            data = x[j,:]
+            #print(data)
+            vote = np.zeros(3)
+            for i in range(self.n_trees):
+                #print(self.total_f_idx[i])
+                features = self.total_f_idx[i]
+                t = self.forest[i]
+               
+                processed_x = data[features].reshape(1,-1)
+                #print("processed_x:",processed_x)
+                #print("pred:", t.predict(processed_x))
+                pred = t.predict(processed_x)
+                vote = np.sum([vote, pred], axis=0)
+            
+            #the results for all test data is in votes eg. array([8,0,0],[7,1,0]) 
+            #for two test data
+            votes.append(vote)
+            
+        return votes 
