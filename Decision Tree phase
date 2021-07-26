@@ -4,6 +4,7 @@ We could implement random forest by making a random forest class, which has the 
 
 Finally, we predict new data by asking each decision tree to predict the label. We then make prediction based which label is the most popular among the trees.
 
+```
 import numpy as np
 import pandas as pd
 #%matplotlib notebook
@@ -11,7 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from IPython.core.debugger import set_trace
 np.random.seed(1234)
-
+```
 #GIVEN A NODE AND COST FUNCTION, IT LOOPS THROUGH ALL POSSIBLE SPLIT IN ALL FEATURES AND VALUES UNTIL 
 #IT FINS THE BEST ONE
 #Define split function
